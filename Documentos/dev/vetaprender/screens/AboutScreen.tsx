@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, BookOpen, GraduationCap, Award, Users } from 'lucide-react';
 import Button from '../components/Button';
+import { projectInfoService, ProjectInfoData } from '../services/ProjectInfoService';
 
 interface AboutScreenProps {
   onBack: () => void;
@@ -22,10 +23,29 @@ const TEAM_MEMBERS = [
     name: 'Raissa Sawada Cutrim Gutierrez',
     role: 'Graduando em Med. Veterinária',
     image: '🎓'
+  },
+  {
+    name: 'Marco Antonio da Silva Mesquita',
+    role: 'Graduando em Ciência da Computação',
+    image: '🎓'
   }
 ];
 
 const AboutScreen: React.FC<AboutScreenProps> = ({ onBack }) => {
+  const [projectInfo, setProjectInfo] = useState<ProjectInfoData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadProjectInfo = async () => {
+      setLoading(true);
+      const data = await projectInfoService.fetchProjectInfo();
+      setProjectInfo(data);
+      setLoading(false);
+    };
+
+    loadProjectInfo();
+  }, []);
+
   return (
     <div className="w-full max-w-2xl mx-auto px-4 animate-fade-in pb-8">
       
@@ -48,39 +68,44 @@ const AboutScreen: React.FC<AboutScreenProps> = ({ onBack }) => {
         
         {/* Seção de Texto */}
         <div className="space-y-6">
-          <div className="flex items-start gap-4">
-            <div className="bg-indigo-50 p-2 rounded-lg mt-1 shrink-0">
-               <GraduationCap className="text-indigo-600" size={20} />
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+              <p className="text-slate-500 mt-2">Carregando informações...</p>
             </div>
-            <div>
-              <h3 className="font-bold text-slate-900 text-lg mb-2">Objetivo Acadêmico</h3>
-              <p>
-                Este projeto de TCC tem como objetivo desenvolver uma ferramenta inovadora para estudantes de 
-                <strong className="text-emerald-700"> Medicina Veterinária</strong>, utilizando conceitos de gamificação para tornar o aprendizado mais interativo e envolvente.
-              </p>
-            </div>
-          </div>
+          ) : (
+            <>
+              <div className="flex items-start gap-4">
+                <div className="bg-indigo-50 p-2 rounded-lg mt-1 shrink-0">
+                   <GraduationCap className="text-indigo-600" size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-lg mb-2">Objetivo Acadêmico</h3>
+                  <p>
+                    {projectInfo?.objetivo_academico || 'Este projeto de TCC tem como objetivo desenvolver uma ferramenta inovadora para estudantes de Medicina Veterinária, utilizando conceitos de gamificação para tornar o aprendizado mais interativo e envolvente.'}
+                  </p>
+                </div>
+              </div>
 
-          <div className="h-px bg-slate-100 w-full"></div>
+              <div className="h-px bg-slate-100 w-full"></div>
 
-          <div className="flex items-start gap-4">
-            <div className="bg-orange-50 p-2 rounded-lg mt-1 shrink-0">
-               <Award className="text-orange-600" size={20} />
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-900 text-lg mb-2">Metodologia</h3>
-              <p className="mb-4">
-                A proposta é facilitar a compreensão de conteúdos complexos do ensino superior, transformando tópicos desafiadores em experiências de estudo mais dinâmicas e acessíveis.
-              </p>
-              <p>
-                Através de recursos lúdicos, atividades práticas e desafios educativos, o projeto busca aumentar a motivação dos alunos, promovendo a retenção de conhecimento de forma eficiente e prazerosa.
-              </p>
-            </div>
-          </div>
+              <div className="flex items-start gap-4">
+                <div className="bg-orange-50 p-2 rounded-lg mt-1 shrink-0">
+                   <Award className="text-orange-600" size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-lg mb-2">Metodologia</h3>
+                  <p className="whitespace-pre-line">
+                    {projectInfo?.metologia || 'A proposta é facilitar a compreensão de conteúdos complexos do ensino superior, transformando tópicos desafiadores em experiências de estudo mais dinâmicas e acessíveis.\n\nAtravés de recursos lúdicos, atividades práticas e desafios educativos, o projeto busca aumentar a motivação dos alunos, promovendo a retenção de conhecimento de forma eficiente e prazerosa.'}
+                  </p>
+                </div>
+              </div>
 
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm italic text-slate-600">
-            "Essa abordagem alia tecnologia e pedagogia, oferecendo uma nova maneira de aprender conteúdos essenciais da Medicina Veterinária sem perder profundidade acadêmica."
-          </div>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm italic text-slate-600">
+                {projectInfo?.detalhamento || '"Essa abordagem alia tecnologia e pedagogia, oferecendo uma nova maneira de aprender conteúdos essenciais da Medicina Veterinária sem perder profundidade acadêmica."'}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Seção de Integrantes */}

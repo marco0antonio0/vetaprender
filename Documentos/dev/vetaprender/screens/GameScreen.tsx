@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, SkipForward, HelpCircle, Loader2 } from 'lucide-react';
 import Button from '../components/Button';
-import { Question } from '../types';
+import { Question, QuestionResult } from '../types';
 
 interface GameScreenProps {
   questions: Question[];
-  onFinish: (score: number) => void;
+  onFinish: (score: number, results: QuestionResult[]) => void;
   isLoading: boolean;
 }
 
@@ -13,14 +13,20 @@ const GameScreen: React.FC<GameScreenProps> = ({ questions, onFinish, isLoading 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [userInput, setUserInput] = useState<string[]>([]);
   const [score, setScore] = useState(0);
+  const [results, setResults] = useState<QuestionResult[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Inicializa o input quando a pergunta muda
   useEffect(() => {
     if (questions && questions[currentIndex]) {
       const q = questions[currentIndex];
-      const rawMask = q.maskedWord.replace(/\s/g, ''); 
-      const initialInput = rawMask.split('').map(char => char === '_' ? '' : char);
+      // Não usa split com espaço, pega caractere por caractere
+      const rawMask = q.maskedWord;
+      const initialInput = rawMask.split('').map(char => {
+        if (char === ' ') return ' '; // Espaço como caractere fixo
+        if (char === '_') return ''; // Underscore vira campo vazio
+        return char; // Outros caracteres são fixos
+      });
       
       setUserInput(initialInput);
       
@@ -64,25 +70,38 @@ const GameScreen: React.FC<GameScreenProps> = ({ questions, onFinish, isLoading 
   const targetWord = currentQuestion.word.toUpperCase();
   const wordLength = targetWord.length;
 
-  const emptySlots = userInput.filter(char => char === '').length;
+  const emptySlots = userInput.filter((char, i) => {
+    const originalChar = currentQuestion.maskedWord.split('').join('')[i];
+    return char === '' && originalChar === '_'; // Conta apenas lacunas editáveis vazias
+  }).length;
   const isComplete = emptySlots === 0;
 
-  // Função para normalizar texto (remove acentos e converte para maiúsculas)
+  // Função para normalizar texto (remove acentos, espaços e converte para maiúsculas)
   const normalizeText = (text: string): string => {
     return text
       .toUpperCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s/g, ''); // Remove espaços para comparação
   };
 
-  const handleNext = (pointsToAdd: number) => {
+  const handleNext = (pointsToAdd: number, userAnswer: string, isCorrect: boolean) => {
     const newScore = score + pointsToAdd;
     setScore(newScore);
+    
+    // Armazena o resultado da questão
+    const newResult: QuestionResult = {
+      question: currentQuestion,
+      userAnswer: userAnswer,
+      isCorrect: isCorrect
+    };
+    const updatedResults = [...results, newResult];
+    setResults(updatedResults);
     
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      onFinish(newScore);
+      onFinish(newScore, updatedResults);
     }
   };
 
@@ -90,18 +109,21 @@ const GameScreen: React.FC<GameScreenProps> = ({ questions, onFinish, isLoading 
     const currentWord = normalizeText(userInput.join(''));
     const target = normalizeText(targetWord);
     
+    // A resposta do usuário já tem os espaços corretos do array userInput
+    const userAnswerDisplay = userInput.join('');
+    
     // Verifica se acertou, mas NÃO mostra erro visual.
     // Apenas contabiliza e passa para o próximo.
     if (currentWord === target) {
-      handleNext(1);
+      handleNext(1, userAnswerDisplay, true);
     } else {
-      handleNext(0);
+      handleNext(0, userAnswerDisplay, false);
     }
   };
 
   const handleSkip = () => {
     // Pular conta como erro (0 pontos)
-    handleNext(0);
+    handleNext(0, '(pulou)', false);
   };
 
   // Manipulador de Entrada de Texto (Letras)
@@ -116,10 +138,10 @@ const GameScreen: React.FC<GameScreenProps> = ({ questions, onFinish, isLoading 
     e.target.value = '';
 
     if (/^[A-Z]$/.test(char)) {
-      const rawMask = currentQuestion.maskedWord.replace(/\s/g, '');
+      const rawMask = currentQuestion.maskedWord;
       const newOne = [...userInput];
       
-      // Encontra a primeira lacuna vazia que não é fixa
+      // Encontra a primeira lacuna vazia que não é fixa (nem espaço)
       for (let i = 0; i < wordLength; i++) {
         if (rawMask[i] === '_' && newOne[i] === '') {
           newOne[i] = char;
@@ -133,7 +155,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ questions, onFinish, isLoading 
   // Manipulador de Teclas Especiais (Backspace)
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace') {
-      const rawMask = currentQuestion.maskedWord.replace(/\s/g, '');
+      const rawMask = currentQuestion.maskedWord;
       const newOne = [...userInput];
       
       // Remove a última letra inserida pelo usuário (de trás para frente)
@@ -213,14 +235,26 @@ const GameScreen: React.FC<GameScreenProps> = ({ questions, onFinish, isLoading 
              {/* Slots Visuais */}
              <div className="flex justify-center flex-wrap gap-2 sm:gap-3 pointer-events-none">
                 {Array.from({ length: wordLength }).map((_, index) => {
-                    const rawMask = currentQuestion.maskedWord.replace(/\s/g, '');
-                    const isFixed = rawMask[index] !== '_';
+                    const rawMask = currentQuestion.maskedWord;
+                    const maskChar = rawMask[index];
+                    const isSpace = maskChar === ' '; // Verifica se é espaço
+                    const isFixed = maskChar !== '_' && maskChar !== ' ';
                     const char = userInput[index] || '';
+                    
+                    // Se for espaço, renderiza um espaçador visual
+                    if (isSpace) {
+                      return (
+                        <div 
+                          key={index}
+                          className="w-3 sm:w-4"
+                        />
+                      );
+                    }
                     
                     // Lógica para destacar o "próximo campo vazio"
                     const isNextToFill = !isFixed && char === '' && userInput.slice(0, index).every((c, i) => {
-                        const maskChar = currentQuestion.maskedWord.replace(/\s/g, '')[i];
-                        return maskChar !== '_' || c !== '';
+                        const m = currentQuestion.maskedWord[i];
+                        return m !== '_' || c !== '';
                     });
 
                     return (
@@ -241,7 +275,7 @@ const GameScreen: React.FC<GameScreenProps> = ({ questions, onFinish, isLoading 
                                 }
                             `}
                         >
-                            {isFixed ? rawMask[index] : char}
+                            {isFixed ? maskChar : char}
                         </div>
                     );
                 })}

@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { Share2, RefreshCw, Home, Star, Trophy, Lightbulb, GraduationCap } from 'lucide-react';
+import { Share2, RefreshCw, Home, Star, Trophy, Lightbulb, GraduationCap, CheckCircle2, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import Button from '../components/Button';
 import { generateFeedback } from '../services/QuestionsService';
-import { FeedbackData } from '../types';
+import { FeedbackData, QuestionResult } from '../types';
 
 interface ResultScreenProps {
   score: number;
   total: number;
+  results: QuestionResult[];
   onRestart: () => void;
   onHome: () => void;
 }
 
-const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, onRestart, onHome }) => {
+const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, results, onRestart, onHome }) => {
   const [feedback, setFeedback] = useState<FeedbackData | null>(null);
   const [showStars, setShowStars] = useState(0);
+  const [showReview, setShowReview] = useState(false);
 
   useEffect(() => {
     const fetchFeedback = async () => {
@@ -163,21 +165,112 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ score, total, onRestart, on
           </div>
 
           {/* Action Buttons */}
-          <div className="w-full space-y-3">
+          <div className="w-full space-y-3 mb-6">
             <Button onClick={onRestart} variant="primary" fullWidth className="py-4 text-lg shadow-emerald-300">
               <RefreshCw size={20} className="mr-2" />
               Jogar Novamente
             </Button>
             
             <div className="grid grid-cols-2 gap-3">
-              <Button onClick={handleShare} variant="secondary" className="py-3 text-sm">
-                <Share2 size={18} /> Compartilhar
+              <Button onClick={() => setShowReview(!showReview)} variant="secondary" className="py-3 text-sm">
+                {showReview ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                {showReview ? 'Ocultar' : 'Ver Revisão'}
               </Button>
               <Button onClick={onHome} variant="outline" className="py-3 text-sm">
                 <Home size={18} /> Menu
               </Button>
             </div>
           </div>
+
+          {/* Results Section - Detailed Question Review */}
+          {showReview && (
+            <div className="w-full mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <h3 className="text-lg font-bold text-slate-800">Revisão das Questões</h3>
+              </div>
+            
+            <div className="space-y-3">
+              {results.map((result, index) => (
+                <div 
+                  key={result.question.id}
+                  className={`
+                    rounded-xl p-4 border-2 transition-all
+                    ${result.isCorrect 
+                      ? 'bg-emerald-50 border-emerald-200' 
+                      : 'bg-red-50 border-red-200'
+                    }
+                  `}
+                >
+                  <div className="flex items-start gap-3">
+                    {/* Icon */}
+                    <div className={`
+                      p-2 rounded-lg shrink-0
+                      ${result.isCorrect ? 'bg-emerald-100' : 'bg-red-100'}
+                    `}>
+                      {result.isCorrect ? (
+                        <CheckCircle2 size={20} className="text-emerald-600" />
+                      ) : (
+                        <XCircle size={20} className="text-red-600" />
+                      )}
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold text-slate-500">
+                          Questão {index + 1}
+                        </span>
+                        <span className={`
+                          px-2 py-0.5 rounded-full text-xs font-bold
+                          ${result.isCorrect 
+                            ? 'bg-emerald-200 text-emerald-700' 
+                            : 'bg-red-200 text-red-700'
+                          }
+                        `}>
+                          {result.isCorrect ? 'Acertou' : 'Errou'}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium">Resposta Correta:</p>
+                          <p className="text-base font-bold text-slate-800">
+                            {result.question.word}
+                          </p>
+                        </div>
+                        
+                        {!result.isCorrect && (
+                          <div>
+                            <p className="text-xs text-slate-500 font-medium">Sua Resposta:</p>
+                            <p className="text-base font-bold text-red-600">
+                              {result.userAnswer}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {result.question.image && (
+                          <div className="mt-2">
+                            <img 
+                              src={result.question.image} 
+                              alt={result.question.word}
+                              className="w-full h-32 object-contain rounded-lg bg-white border border-slate-200"
+                            />
+                          </div>
+                        )}
+                        
+                        <div className="bg-white/50 rounded-lg p-2 mt-2">
+                          <p className="text-xs text-slate-600">
+                            <span className="font-semibold">Dica:</span> {result.question.hint}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </div>
       </div>

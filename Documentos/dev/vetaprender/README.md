@@ -1,7 +1,7 @@
 # 🎓 VetAprender
 
 <div align="center">
-  <img src="public/logo.png" alt="VetAprender Logo" width="200"/>
+  <img src="public/midia/image-2.png" alt="OsteoPlay Vet Logo" width="200"/>
   
   ### Gamificando o ensino de medicina veterinária
   
@@ -15,7 +15,7 @@
 
 ## 📋 Sobre o Projeto
 
-**VetAprender** é uma plataforma educacional interativa desenvolvida como projeto de TCC, com o objetivo de facilitar o aprendizado de **Medicina Veterinária** através de gamificação.
+**OsteoPlay Vet** é uma plataforma educacional interativa desenvolvida como projeto de TCC, com o objetivo de facilitar o aprendizado de **Medicina Veterinária** através de gamificação.
 
 A aplicação transforma o estudo de anatomia e outros conteúdos complexos em uma experiência dinâmica e envolvente, utilizando:
 - 🎮 Quizzes interativos com imagens

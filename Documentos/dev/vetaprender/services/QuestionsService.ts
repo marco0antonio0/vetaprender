@@ -1,59 +1,70 @@
 import { Question, FeedbackData, Difficulty } from "../types";
 
-// Estrutura solicitada pelo usuário
-const STATIC_DB = {
-  data: [
-    {
-      palavra: "Atlas",
-      imagem: "/questoes/IMG_4525.PNG",
-      dica: "Primeira vértebra cervical que sustenta o crânio."
-    },
-    {
-      palavra: "Fêmur",
-      imagem: "/questoes/IMG_4526.PNG",
-      dica: "Maior osso do corpo, localizado na coxa."
-    },
-    {
-      palavra: "Vértebra cervical",
-      imagem: "/questoes/IMG_4527.PNG",
-      dica: "Ossos curvos que formam a caixa torácica e protegem pulmões."
-    },
-    {
-      palavra: "Úmero",
-      imagem: "/questoes/IMG_4528.PNG",
-      dica: "Osso longo do braço superior, conecta o ombro ao cotovelo."
-    },
-    {
-      palavra: "Osso Nasal",
-      imagem: "/questoes/IMG_4529.PNG",
-      dica: "Pequenos ossos que formam a ponte do nariz."
-    },
-    {
-      palavra: "Osso Coxal",
-      imagem: "/questoes/IMG_4530.PNG",
-      dica: "Osso grande e plano que forma a base da coluna vertebral."
-    },
-    {
-      palavra: "Sacro",
-      imagem: "/questoes/IMG_4531.PNG", 
-      dica: "Osso plano triangular localizado na parte posterior do ombro."
-    },
-    {
-      palavra: "Occipital",
-      imagem: "/questoes/IMG_4532.PNG",
-      dica: "Osso que forma a parte posterior e base do crânio."
-    },
-    {
-      palavra: "Tíbia",
-      imagem: "/questoes/IMG_4533.PNG",
-      dica: "Osso longo da perna, conhecido como canela."
-    },
-    {
-      palavra: "Rádio-ulna",
-      imagem: "/questoes/IMG_4534.PNG",
-      dica: "Osso longo do antebraço, composto por dois ossos fundidos."
-    },
-  ]
+// URLs da API para cada dificuldade
+const API_URLS = {
+  beginner: 'https://api-osteoplay-vet.netlify.app/api/endpoint/43vvFzYhtSnOShNaGYBN',
+  challenging: 'https://api-osteoplay-vet.netlify.app/api/endpoint/Y8lJQqSyjHKj9NpQpFdC'
+};
+
+// Tipos da resposta da API
+interface QuestionItem {
+  id: string;
+  endpointId: string;
+  data: {
+    nome: string;
+    dica: string;
+    imagem: string; // Base64
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface APIResponse {
+  id: string;
+  title: string;
+  campos: Array<any>;
+  createdAt: string;
+  updatedAt: string;
+  items: QuestionItem[];
+}
+
+// Cache para as questões
+let cachedQuestions: {
+  beginner: QuestionItem[] | null;
+  challenging: QuestionItem[] | null;
+} = {
+  beginner: null,
+  challenging: null
+};
+
+/**
+ * Busca as questões da API
+ */
+const fetchQuestionsFromAPI = async (difficulty: 'beginner' | 'challenging'): Promise<QuestionItem[]> => {
+  // Retorna do cache se já existe
+  if (cachedQuestions[difficulty]) {
+    return cachedQuestions[difficulty]!;
+  }
+
+  try {
+    const response = await fetch(API_URLS[difficulty]);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data: APIResponse = await response.json();
+    
+    if (data.items && data.items.length > 0) {
+      cachedQuestions[difficulty] = data.items;
+      return data.items;
+    }
+
+    return [];
+  } catch (error) {
+    console.error(`Erro ao buscar questões (${difficulty}):`, error);
+    return [];
+  }
 };
 
 /**
@@ -66,70 +77,81 @@ const createMaskedWord = (word: string, difficulty: Difficulty): string => {
 
   // Define quantos ocultar
   let countToHide = 0;
-  if (difficulty === 'easy') countToHide = 2;
+  if (difficulty === 'easy') countToHide = 3; // Iniciante: 3 letras
   else if (difficulty === 'normal') countToHide = 3;
-  else if (difficulty === 'hard') countToHide = length; // Oculta tudo
+  else if (difficulty === 'hard') countToHide = length; // Desafiante: todas as letras
 
   // Ajuste de segurança: nunca ocultar mais do que o tamanho da palavra - 1 (exceto no hard)
   if (difficulty !== 'hard' && countToHide >= length) {
     countToHide = Math.max(1, length - 1);
   }
 
-  // Se for Hard, esconde tudo direto
+  // Se for Hard, esconde todas as letras (mas não espaços)
   if (difficulty === 'hard') {
-    return Array(length).fill('_').join(' ');
+    return letters.map(char => char === ' ' ? ' ' : '_').join('');
   }
 
-  // Seleciona índices aleatórios para ocultar
-  const availableIndices = Array.from({ length }, (_, i) => i);
-  // Embaralha índices
+  // Seleciona apenas índices que NÃO são espaços
+  const availableIndices = letters
+    .map((char, i) => char !== ' ' ? i : -1)
+    .filter(i => i !== -1);
+  
+  // Embaralha índices disponíveis
   for (let i = availableIndices.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [availableIndices[i], availableIndices[j]] = [availableIndices[j], availableIndices[i]];
   }
   
-  indicesToHide = availableIndices.slice(0, countToHide);
+  // Seleciona apenas a quantidade necessária de índices para ocultar
+  indicesToHide = availableIndices.slice(0, Math.min(countToHide, availableIndices.length));
 
-  // Monta a string mascarada
+  // Monta a string mascarada (espaços sempre visíveis)
   return letters.map((char, index) => {
+    if (char === ' ') return ' '; // Espaços sempre visíveis
     return indicesToHide.includes(index) ? '_' : char;
-  }).join(' ');
+  }).join(''); // Não adiciona espaços entre as letras
 };
 
 /**
- * Gera as perguntas para o jogo a partir do JSON estático.
+ * Gera as perguntas para o jogo a partir da API.
  */
 export const generateQuizQuestions = async (
-  maxQuestions: number = 10,
-  difficulty: Difficulty = 'normal',
-  randomize: boolean = true
+  difficulty: 'beginner' | 'challenging',
+  maxQuestions: number = 10
 ): Promise<Question[]> => {
   
-  // Simula um loading rápido
-  await new Promise(resolve => setTimeout(resolve, 400));
-
-  // Converte o formato do JSON (palavra, imagem, dica) para o formato interno (Question)
-  let rawQuestions = STATIC_DB.data.map((item, index) => ({
-    id: String(index),
-    word: item.palavra.toUpperCase(),
-    hint: item.dica,
-    image: item.imagem,
-    maskedWord: "" // Será preenchido abaixo
-  }));
-
-  // 1. Embaralhar se necessário
-  if (randomize) {
-    rawQuestions.sort(() => Math.random() - 0.5);
+  // Busca questões da API
+  const apiQuestions = await fetchQuestionsFromAPI(difficulty);
+  
+  if (apiQuestions.length === 0) {
+    console.warn('Nenhuma questão disponível na API');
+    return [];
   }
 
-  // 2. Cortar para o máximo permitido
-  const selectedRawQuestions = rawQuestions.slice(0, maxQuestions);
+  // Embaralha as questões
+  const shuffled = [...apiQuestions].sort(() => Math.random() - 0.5);
+  
+  // Seleciona apenas 10 questões
+  const selected = shuffled.slice(0, Math.min(maxQuestions, shuffled.length));
 
-  // 3. Aplicar máscara de dificuldade
-  return selectedRawQuestions.map(q => ({
-    ...q,
-    maskedWord: createMaskedWord(q.word, difficulty)
-  }));
+  // Converte para o formato Question
+  const difficultyLevel: Difficulty = difficulty === 'beginner' ? 'easy' : 'hard';
+  
+  return selected.map((item, index) => {
+    const word = item.data.nome.toUpperCase();
+    // Converte a imagem base64 para data URL se não estiver vazia
+    const imageUrl = item.data.imagem 
+      ? (item.data.imagem.startsWith('data:') ? item.data.imagem : `data:image/png;base64,${item.data.imagem}`)
+      : undefined;
+    
+    return {
+      id: item.id,
+      word: word,
+      hint: item.data.dica || 'Sem dica disponível',
+      image: imageUrl,
+      maskedWord: createMaskedWord(word, difficultyLevel)
+    };
+  });
 };
 
 /**
