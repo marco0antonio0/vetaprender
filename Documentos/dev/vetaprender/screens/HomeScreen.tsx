@@ -49,7 +49,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, onStartQuiz, onLearnMo
       {/* Hero Section Limpo */}
       <div className="relative mb-12 w-full z-10">
         {/* Animated Icon */}
-        <div className="relative mb-6 inline-flex items-center justify-center">
+        <div className="relative mb-6 inline-flex items-center justify-center py-6">
           {/* Paw prints decoration */}
           <div className="absolute -top-8 -left-12 opacity-20 animate-bounce-subtle" style={{ animationDelay: '0.5s' }}>
             <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-600">
@@ -68,7 +68,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, onStartQuiz, onLearnMo
             </svg>
           </div>
           
-          <div className="rounded-2xl shadow-lg w-[200px] h-[200px] bg-emerald-50 flex items-center justify-center animate-float">
+          <div className="rounded-2xl shadow-lg w-[200px] h-[200px] bg-emerald-50 flex items-center justify-center animate-float overflow-visible">
               <img src="/midia/image-3.png" alt="OsteoPlayVet" className="w-full h-full object-contain p-4" />
           </div>
         </div>
