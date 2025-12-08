@@ -162,6 +162,7 @@ export default function App() {
         {currentScreen === 'HOME' && (
           <HomeScreen 
             onStart={showDifficultySelection} 
+            onStartQuiz={showQuizDifficultySelection}
             onLearnMore={handleLearnMore} 
           />
         )}
@@ -169,6 +170,13 @@ export default function App() {
         {currentScreen === 'DIFFICULTY' && (
           <DifficultyScreen 
             onSelectDifficulty={startGame}
+            onBack={goHome}
+          />
+        )}
+        
+        {currentScreen === 'QUIZ_DIFFICULTY' && (
+          <QuizDifficultyScreen 
+            onSelectDifficulty={startQuizGame}
             onBack={goHome}
           />
         )}
@@ -191,6 +199,24 @@ export default function App() {
             total={questions.length}
             results={results}
             onRestart={handleRestartGame}
+            onHome={goHome}
+          />
+        )}
+        
+        {currentScreen === 'QUIZ_GAME' && (
+          <QuizGameScreen 
+            questions={quizQuestions} 
+            isLoading={isLoadingQuestions}
+            onFinish={finishQuizGame} 
+          />
+        )}
+
+        {currentScreen === 'QUIZ_RESULT' && (
+          <QuizResultScreen 
+            score={score} 
+            total={quizQuestions.length}
+            results={quizResults}
+            onRestart={handleRestartQuizGame}
             onHome={goHome}
           />
         )}
